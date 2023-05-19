@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Taller 3</string>
+    <string name="available_users">Available users</string>
+    <string name="login">Log In</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="sign_up">Don\'t have an account? <b><u>Create one</u></b></string>
+    <string name="users">Users</string>
+    <string name="logout">Logout</string>
+    <string name="available">switch</string>
+    <string name="name">Name</string>
+    <string name="get_position">Get position</string>
+    <string name="sign_in">Sign in</string>
+    <string name="identification">Identification</string>
+    <string name="last_name">Last name</string>
+</resources>

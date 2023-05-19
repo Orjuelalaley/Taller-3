@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
@@ -18,6 +19,7 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import com.example.myapplication.databinding.ActivityHomeBinding;
 import com.example.myapplication.model.User;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -47,6 +49,7 @@ import java.util.Objects;
 import java.util.Scanner;
 
 public class HomeActivity extends AppCompatActivity {
+    private ActivityHomeBinding binding;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private LocationRequest locationRequest;
@@ -55,22 +58,23 @@ public class HomeActivity extends AppCompatActivity {
     MaterialToolbar menuToolBar;
     Double currentUserLatitude = 0d, currentUserLongitude = 0d;
     Marker currentUserMarker;
-    MapView map;
     User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        binding = ActivityHomeBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
         Configuration.getInstance().load(getApplicationContext(), PreferenceManager.getDefaultSharedPreferences(getApplicationContext()));
         auth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         locationCallback = notifyCallbackChanges();
         locationRequest = createLocationRequest();
-        map = findViewById(R.id.map);
-        map.setTileSource(TileSourceFactory.MAPNIK);
-        map.setMultiTouchControls(true);
+
+        binding.map.setTileSource(TileSourceFactory.MAPNIK);
+        binding.map.setMultiTouchControls(true);
         menuToolBar = findViewById(R.id.appBarMenu);
         setSupportActionBar(menuToolBar);
     }
@@ -85,14 +89,14 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        map.onResume();
+        binding.map.onResume();
         startLocationUpdates();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        map.onPause();
+        binding.map.onPause();
         stopLocationUpdates();
     }
 
@@ -129,23 +133,20 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<DataSnapshot> task) {
                 for (DataSnapshot snapshot : task.getResult().getChildren())
-                    if (snapshot.getKey().equals(auth.getUid()))
+                    if (Objects.equals(snapshot.getKey(), auth.getUid()))
                         mSwitch.setChecked(true);
             }
         });
     }
 
     private void changeSwitchState(Switch mSwitch) {
-        mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    addToAvailable();
-                    Toast.makeText(HomeActivity.this, "Available", Toast.LENGTH_SHORT).show();
-                } else {
-                    db.getReference("availableUsers").child(auth.getUid()).removeValue();
-                    Toast.makeText(HomeActivity.this, "Not available", Toast.LENGTH_SHORT).show();
-                }
+        mSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                addToAvailable();
+                Toast.makeText(HomeActivity.this, "Available", Toast.LENGTH_SHORT).show();
+            } else {
+                db.getReference("availableUsers").child(Objects.requireNonNull(auth.getUid())).removeValue();
+                Toast.makeText(HomeActivity.this, "Not available", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -153,7 +154,7 @@ public class HomeActivity extends AppCompatActivity {
     private LocationCallback notifyCallbackChanges() {
         return new LocationCallback() {
             @Override
-            public void onLocationResult(LocationResult locationResult) {
+            public void onLocationResult(@NonNull LocationResult locationResult) {
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
                     currentUserLatitude = location.getLatitude();
@@ -174,11 +175,10 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private LocationRequest createLocationRequest() {
-        LocationRequest locationRequest = LocationRequest.create()
+        return LocationRequest.create()
                 .setInterval(10000)
                 .setFastestInterval(5000)
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        return locationRequest;
     }
 
     private void startLocationUpdates() {
@@ -191,23 +191,22 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private Marker createMarker(GeoPoint p, String title, String desc, int iconID) {
-        Marker marker = null;
-        if (map != null) {
-            marker = new Marker(map);
-            if (title != null) marker.setTitle(title);
-            if (desc != null) marker.setSubDescription(desc);
-            if (iconID != 0) {
-                Drawable myIcon = getResources().getDrawable(iconID, this.getTheme());
-                marker.setIcon(myIcon);
-            }
-            marker.setPosition(p);
-            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        Marker marker;
+        marker = new Marker(binding.map);
+        if (title != null) marker.setTitle(title);
+        if (desc != null) marker.setSubDescription(desc);
+        if (iconID != 0) {
+            @SuppressLint("UseCompatLoadingForDrawables")
+            Drawable myIcon = getResources().getDrawable(iconID, this.getTheme());
+            marker.setIcon(myIcon);
         }
+        marker.setPosition(p);
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
         return marker;
     }
 
     private void placeMarker(Marker marker) {
-        map.getOverlays().add(marker);
+        binding.map.getOverlays().add(marker);
     }
 
 
@@ -261,7 +260,7 @@ public class HomeActivity extends AppCompatActivity {
                     assert currentUser != null;
                     currentUserLatitude = currentUser.getLatitude();
                     currentUserLongitude = currentUser.getLongitude();
-                    IMapController mapController = map.getController();
+                    IMapController mapController = binding.map.getController();
                     mapController.setZoom(13.0);
                     mapController.setCenter(new GeoPoint(currentUserLatitude, currentUserLongitude));
                     menuToolBar.setTitle("Current user: " + currentUser.getName() + " " + currentUser.getLastName());
@@ -275,12 +274,13 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setUserCurrentLocationOnDb() {
-        DatabaseReference ref = db.getReference("users").child(auth.getUid());
+        DatabaseReference ref = db.getReference("users").child(Objects.requireNonNull(auth.getUid()));
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.getKey().equals(auth.getUid())) {
+                if (Objects.equals(snapshot.getKey(), auth.getUid())) {
                     User user = snapshot.getValue(User.class);
+                    assert user != null;
                     user.setLatitude(currentUserLatitude);
                     user.setLongitude(currentUserLongitude);
                     db.getReference("users").child(auth.getUid()).setValue(user);

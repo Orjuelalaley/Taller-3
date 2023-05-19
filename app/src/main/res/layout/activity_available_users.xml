@@ -14,7 +14,7 @@
         android:textColor="@color/black"
         android:paddingStart="130dp"
         android:paddingEnd="130dp"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         android:textAlignment="center"
         android:text="@string/available_users"
